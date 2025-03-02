@@ -1,0 +1,41 @@
+name: Deploy to Compute Engine VM
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Authenticate with Google Cloud
+        uses: google-github-actions/auth@v1
+        with:
+          workload_identity_provider: "projects/YOUR_PROJECT_NUMBER/locations/global/workloadIdentityPools/github/providers/github-provider"
+          service_account: "github-actions@YOUR_PROJECT_ID.iam.gserviceaccount.com"
+
+      - name: Set up Docker CLI
+        run: |
+          gcloud auth configure-docker gcr.io
+
+      - name: Build & Push Docker Image
+        run: |
+          docker build -t gcr.io/YOUR_PROJECT_ID/landing-page:${{ github.sha }} .
+          docker push gcr.io/YOUR_PROJECT_ID/landing-page:${{ github.sha }}
+
+      - name: SSH into Compute Engine and Deploy
+        uses: appleboy/ssh-action@v0.1.6
+        with:
+          host: ${{ secrets.GCE_VM_IP }}
+          username: ${{ secrets.GCE_VM_USER }}
+          key: ${{ secrets.GCE_SSH_KEY }}
+          script: |
+            docker pull gcr.io/YOUR_PROJECT_ID/landing-page:${{ github.sha }}
+            docker stop landing-page || true
+            docker rm landing-page || true
+            docker run -d --name landing-page -p 80:80 gcr.io/YOUR_PROJECT_ID/landing-page:${{ github.sha }}
