@@ -35,12 +35,3 @@ jobs:
       run: |
         docker push us-central1-docker.pkg.dev/chrome-setup-445605-f8/my-repo/landing-page:latest
 
-    # 6️⃣ Deploy on Google Cloud VM
-    - name: Deploy to Google Cloud VM
-      run: |
-        gcloud compute ssh krdc-main --zone=us-central1-c --command="
-          docker stop landing-page || true &&
-          docker rm landing-page || true &&
-          docker pull us-central1-docker.pkg.dev/chrome-setup-445605-f8/my-repo/landing-page:latest &&
-          docker run -d --name landing-page -p 8081:80 us-central1-docker.pkg.dev/chrome-setup-445605-f8/my-repo/landing-page:latest
-        "
